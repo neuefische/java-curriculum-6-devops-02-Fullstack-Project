@@ -81,8 +81,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: push-to-docker-hub
     environment:
-      name: Fullstack Project # Capstone Project name
-      url: https://fullstack-v15z.onrender.com/ # Link to deployment
+      name: Capstone Project # Capstone Project name
+      url: https://neuefische.de/ # Link to deployment
     steps:
       - name: Trigger Render.com Deployment
         id: trigger-deploy
@@ -94,8 +94,8 @@ jobs:
             --header 'content-type: application/json')
           echo "$response"
           id=$(echo "$response" | jq -r '.id')
-          echo "::set-output name=deploy_id::$id"
+          echo "deploy_id=$id" >> $GITHUB_ENV
 
       - name: Use Deployment ID
         run: |
-          echo "Deployment ID: ${{ steps.trigger-deploy.outputs.deploy_id }}"
+          echo "Deployment ID: ${{ env.deploy_id }}"
