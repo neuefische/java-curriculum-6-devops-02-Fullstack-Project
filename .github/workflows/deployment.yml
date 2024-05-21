@@ -82,7 +82,7 @@ jobs:
     needs: push-to-docker-hub
     environment:
       name: Capstone Project # Capstone Project name
-      url: https://neuefische.de/ # Link to deployment
+      url: https://fullstack-v15z.onrender.com # Link to deployment
     steps:
       - name: Trigger Render.com Deployment
         id: trigger-deploy
@@ -95,6 +95,20 @@ jobs:
           id=$(echo "$response" | jq -r '.id')
           echo "deploy_id=$id" >> $GITHUB_ENV
 
-      - name: Use Deployment ID
+      - name: Wait for Deployment to finish
         run: |
-          echo "Deployment ID: ${{ env.deploy_id }}"
+          curl=$(curl --request GET \
+            --url https://api.render.com/v1/services/${{ secrets.RENDER_SERVICE_ID }}/deploys/${{ env.deploy_id }} \
+            --header 'accept: application/json' \
+            --header 'authorization: Bearer ${{ secrets.RENDER_API_KEY }}')
+          status=$(echo "$curl" | jq -r '.status')
+          maxTries=10
+          while [ "$status" != "live" ] && [ $maxTries -gt 0 ]; do
+            maxTries=$((maxTries - 1))
+            sleep 10
+            curl=$(curl --request GET \
+              --url https://api.render.com/v1/services/${{ secrets.RENDER_SERVICE_ID }}/deploys/${{ env.deploy_id }} \
+              --header 'accept: application/json' \
+              --header 'authorization: Bearer ${{ secrets.RENDER_API_KEY }}')
+            status=$(echo "$curl" | jq -r '.status')
+          done
