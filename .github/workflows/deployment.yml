@@ -97,20 +97,28 @@ jobs:
 
       - name: Wait for Deployment to finish
         run: |
-          curl=$(curl --request GET \
-            --url https://api.render.com/v1/services/${{ secrets.RENDER_SERVICE_ID }}/deploys/${{ env.deploy_id }} \
-            --header 'accept: application/json' \
-            --header 'authorization: Bearer ${{ secrets.RENDER_API_KEY }}')
-          status=$(echo "$curl" | jq -r '.status')
-          maxTries=10
-          while [ "$status" != "live" ] && [ $maxTries -gt 0 ]; do
-            maxTries=$((maxTries - 1))
-            sleep 10
-            curl=$(curl --request GET \
+          function get_deployment_status() {
+            curl --request GET \
               --url https://api.render.com/v1/services/${{ secrets.RENDER_SERVICE_ID }}/deploys/${{ env.deploy_id }} \
               --header 'accept: application/json' \
-              --header 'authorization: Bearer ${{ secrets.RENDER_API_KEY }}')
-            status=$(echo "$curl" | jq -r '.status')
-            echo "Tries left: $maxTries"
-            echo "Status: $status"
+              --header 'authorization: Bearer ${{ secrets.RENDER_API_KEY }}' \
+              --silent | jq -r '.status'
+          }
+
+          maxTries=10
+          sleepInterval=10
+          status=$(get_deployment_status)
+
+          while [ "$status" != "live" ] && [ $maxTries -gt 0 ]; do
+            maxTries=$((maxTries - 1))
+            echo "Deployment status: $status. Retrying in $sleepInterval seconds... ($maxTries tries left)"
+            sleep $sleepInterval
+            status=$(get_deployment_status)
           done
+
+          if [ "$status" != "live" ]; then
+            echo "Deployment did not reach 'live' status after maximum retries."
+            exit 1
+          else
+            echo "Deployment is live!"
+          fi
