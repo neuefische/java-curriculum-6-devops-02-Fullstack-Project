@@ -111,4 +111,6 @@ jobs:
               --header 'accept: application/json' \
               --header 'authorization: Bearer ${{ secrets.RENDER_API_KEY }}')
             status=$(echo "$curl" | jq -r '.status')
+            echo "Tries left: $maxTries"
+            echo "Status: $status"
           done
